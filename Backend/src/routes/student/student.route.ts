@@ -1,0 +1,165 @@
+import { Router } from "express";
+import {
+  createEnrollmentController,
+  cancelEnrollmentController,
+  getEnrollmentDetailsController,
+  deleteMyDocumentController,
+  reuploadDocumentController,
+  getCourseGroupsForStudents,
+  getCoursesForStudents,
+  getMyDashboardController,
+  getMyDocumentsController,
+  getMyEnrollmentsController,
+  getMyProfile,
+  joinGroupController,
+  leaveGroupController,
+  updateMyStudentProfile,
+  uploadDocumentsController,
+  getMyFeesController,
+  getMyAttendanceController,
+  getMyResultsController,
+  getCourseProfileWithPricing,
+} from "../../controllers/student/student.controller";
+import { authMiddleware } from "../../middlewares/auth.middleware";
+import { upload, uploadDocument } from "../../middlewares/upload.middleware";
+import { requireApprovedDocuments } from "../../middlewares/requireApprovedDocuments.middleware";
+import { requireCompletedProfile } from "../../middlewares/requireCompletedProfile.middleware";
+import {
+  getMyNotificationsController,
+  getUnreadCountController,
+  markAllNotificationsReadController,
+  markNotificationReadController,
+} from "../../controllers/admin/Notification.controller";
+
+const studentRoutes: Router = Router();
+
+/* ================= PROFILE ================= */
+
+// ✅ FIXED: Added authMiddleware
+studentRoutes.get("/me/profile", authMiddleware, getMyProfile);
+
+studentRoutes.put("/profile", authMiddleware, updateMyStudentProfile);
+
+studentRoutes.get("/me/dashboard", authMiddleware, getMyDashboardController);
+
+/* ================= DOCUMENTS ================= */
+
+studentRoutes.post(
+  "/documents",
+  authMiddleware,
+  upload.fields([
+    { name: "STUDENT_CARD", maxCount: 1 },
+    { name: "SCHOOL_CERTIFICATE", maxCount: 1 },
+    { name: "REGISTRATION_CERTIFICATE", maxCount: 1 },
+    { name: "ID_CARD", maxCount: 1 },
+    { name: "WORK_CERTIFICATE", maxCount: 1 },
+    { name: "ADMIN_CERTIFICATE", maxCount: 1 },
+    { name: "PHOTO", maxCount: 1 },
+    { name: "PAYMENT_RECEIPT", maxCount: 1 },
+  ]),
+  uploadDocumentsController,
+);
+
+studentRoutes.delete(
+  "/documents/:document_id",
+  authMiddleware,
+  deleteMyDocumentController,
+);
+
+studentRoutes.get("/documents", authMiddleware, getMyDocumentsController);
+
+studentRoutes.put(
+  "/documents/:document_id/reupload",
+  authMiddleware,
+  uploadDocument.single("file"),
+  reuploadDocumentController,
+);
+
+/* ================= ENROLLMENT ================= */
+
+studentRoutes.post(
+  "/enroll",
+  authMiddleware,
+  requireApprovedDocuments,
+  createEnrollmentController,
+);
+
+studentRoutes.get(
+  "/me/enrollments",
+  authMiddleware,
+  getMyEnrollmentsController,
+);
+
+studentRoutes.get(
+  "/me/enrollments/:enrollment_id",
+  authMiddleware,
+  getEnrollmentDetailsController,
+);
+
+studentRoutes.delete(
+  "/me/enrollments/:enrollment_id",
+  authMiddleware,
+  cancelEnrollmentController,
+);
+
+/* ================= COURSES ================= */
+
+studentRoutes.get("/courses", authMiddleware, getCoursesForStudents);
+
+studentRoutes.get(
+  "/courses/:courseId/groups",
+  authMiddleware,
+  getCourseGroupsForStudents,
+);
+
+/* ================= GROUPS ================= */
+
+studentRoutes.post("/groups/join", authMiddleware, joinGroupController);
+
+studentRoutes.post("/groups/leave", authMiddleware, leaveGroupController);
+
+/* ================= FEES ================= */
+
+studentRoutes.get("/me/fees", authMiddleware, getMyFeesController);
+
+/* ================= ATTENDANCE ================= */
+
+studentRoutes.get("/me/attendance", authMiddleware, getMyAttendanceController);
+
+/* ================= RESULTS ================= */
+
+studentRoutes.get("/me/results", authMiddleware, getMyResultsController);
+
+studentRoutes.get(
+  "/courses/:courseId/pricing",
+  authMiddleware,
+  getCourseProfileWithPricing,
+);
+
+/* ================= NOTIFICATIONS ================= */
+
+studentRoutes.get(
+  "/notifications",
+  authMiddleware,
+  getMyNotificationsController,
+);
+
+studentRoutes.get(
+  "/notifications/unread-count",
+  authMiddleware,
+  getUnreadCountController,
+);
+
+studentRoutes.patch(
+  "/notifications/read-all",
+  authMiddleware,
+  markAllNotificationsReadController,
+);
+
+studentRoutes.patch(
+  "/notifications/:recipientId/read",
+  authMiddleware,
+  markNotificationReadController,
+);
+
+export default studentRoutes;

@@ -1,0 +1,151 @@
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "../../../components/ui/avatar";
+import { useAuth } from "../../../hooks/useAuth";
+import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
+import { DashboardLanguageSwitcher } from "../../student/components/Dashboardlanguageswitcher";
+import NotificationBell from "../../student/components/Notificationbell";
+import ThemeToggle from "../../../components/Themetoggle";
+import {
+  LayoutDashboard,
+  Users,
+  GraduationCap,
+  Briefcase,
+  BookOpen,
+  Building2,
+  Calendar,
+  DollarSign,
+  ClipboardList,
+  FileText,
+  UserCircle,
+  Globe,
+  Megaphone,
+  BellRing,
+  DoorOpen,
+} from "lucide-react";
+
+const ADMIN_NAVIGATION = [
+  {
+    labelKey: "admin.nav.dashboard",
+    path: "/admin/dashboard",
+    icon: LayoutDashboard,
+  },
+  { labelKey: "admin.nav.users", path: "/admin/users", icon: Users },
+  {
+    labelKey: "admin.nav.students",
+    path: "/admin/students",
+    icon: GraduationCap,
+  },
+  { labelKey: "admin.nav.teachers", path: "/admin/teachers", icon: Briefcase },
+  { labelKey: "admin.nav.courses", path: "/admin/courses", icon: BookOpen },
+  {
+    labelKey: "admin.nav.departments",
+    path: "/admin/departments",
+    icon: Building2,
+  },
+  { labelKey: "admin.nav.sessions", path: "/admin/sessions", icon: Calendar },
+  { labelKey: "admin.nav.rooms", path: "/admin/rooms", icon: DoorOpen },
+  { labelKey: "admin.nav.fees", path: "/admin/fees", icon: DollarSign },
+  {
+    labelKey: "admin.nav.enrollments",
+    path: "/admin/enrollments",
+    icon: ClipboardList,
+  },
+  {
+    labelKey: "admin.nav.documents",
+    path: "/admin/documents",
+    icon: FileText,
+  },
+  {
+    labelKey: "admin.nav.notifications",
+    path: "/admin/notifications",
+    icon: BellRing,
+  },
+  {
+    labelKey: "admin.nav.formations",
+    path: "/admin/formations",
+    icon: Globe,
+  },
+  {
+    labelKey: "admin.nav.announcements",
+    path: "/admin/announcements",
+    icon: Megaphone,
+  },
+  {
+    labelKey: "admin.nav.profile",
+    path: "/admin/profile",
+    icon: UserCircle,
+  },
+];
+
+interface HeaderProps {
+  onMenuClick: () => void;
+}
+
+export const Header = ({ onMenuClick }: HeaderProps) => {
+  const location = useLocation();
+  const { user } = useAuth();
+  const { t } = useTranslation();
+
+  // Find current page
+  const currentPage =
+    ADMIN_NAVIGATION.find((n) => n.path === location.pathname) ||
+    ADMIN_NAVIGATION.find((n) => location.pathname.startsWith(n.path)) ||
+    ADMIN_NAVIGATION[0];
+
+  // Safe initials
+  const initials = user?.email
+    ? user.email.split("@")[0].slice(0, 2).toUpperCase()
+    : "AD";
+
+  const avatarSrc = user?.google_avatar || "";
+
+  return (
+    <header className="sticky top-0 z-20 flex h-14 items-center justify-between px-4 sm:px-6 border-b border-brand-beige/30 dark:border-[#2A2A2A] bg-white/80 dark:bg-[#1A1A1A]/80 backdrop-blur-sm transition-colors duration-300">
+      {/* Left: Title */}
+      <div className="flex items-center gap-3">
+        <h1 className="text-base sm:text-lg font-semibold text-[#1B1B1B] dark:text-[#E5E5E5] truncate">
+          {t(currentPage.labelKey)}
+        </h1>
+      </div>
+
+      {/* Right: Theme + Language + Notifications + Avatar */}
+      <div className="flex items-center gap-2">
+        {/* ✅ Theme Toggle */}
+        <ThemeToggle />
+
+        {/* Language Switcher */}
+        <DashboardLanguageSwitcher className="hidden sm:flex" />
+
+        {/* Notification Bell */}
+        <NotificationBell
+          role="admin"
+          notificationsPath="/admin/notifications"
+        />
+
+        {/* User Info */}
+        {user && (
+          <div className="hidden sm:flex flex-col items-end mr-1">
+            <span className="text-sm font-medium text-[#1B1B1B] dark:text-[#E5E5E5] truncate max-w-37.5">
+              {user.email.split("@")[0]}
+            </span>
+            <span className="text-[11px] text-brand-brown dark:text-[#666666]">
+              {t("admin.role")}
+            </span>
+          </div>
+        )}
+
+        {/* Avatar */}
+        <Avatar className="h-9 w-9 border-2 border-brand-beige/40 dark:border-[#2A2A2A]">
+          <AvatarImage src={avatarSrc} alt={user?.email || "Admin avatar"} />
+          <AvatarFallback className="text-xs font-semibold bg-linear-to-br from-[#8DB896] to-[#2B6F5E] dark:from-[#4ADE80]/30 dark:to-[#2B6F5E] text-white">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+      </div>
+    </header>
+  );
+};

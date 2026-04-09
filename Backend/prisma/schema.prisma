@@ -1,0 +1,580 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Student {
+  student_id          String              @id @default(uuid()) @db.Uuid
+  first_name          String              @db.VarChar(100)
+  last_name           String              @db.VarChar(100)
+  date_of_birth       DateTime?
+  gender              Gender?
+  user_id             String              @unique @db.Uuid
+  phone_number        String?             @db.VarChar(35)
+  email               String?             @db.VarChar(100)
+  secondary_email     String?             @db.VarChar(100)
+  address             String?
+  nationality         String?             @db.VarChar(50)
+  language            String?
+  avatar_url          String?
+  education_level     String?             @db.VarChar(100)
+  study_location      String?             @db.VarChar(100)
+  status              StudentStatus       @default(ACTIVE)
+  created_at          DateTime            @default(now())
+  updated_at          DateTime            @updatedAt
+  registrant_category RegistrantCategory  @default(STUDENT)
+  attendance          Attendance[]
+  documents           Document[]          @relation("StudentDocuments")
+  enrollments         Enrollment[]
+  fees                Fee[]
+  results             Result[]
+  permissions         StudentPermission[]
+  user                User?
+
+  @@map("Student")
+}
+
+model Teacher {
+  teacher_id   String   @id @default(uuid()) @db.Uuid
+  first_name   String   @db.VarChar(100)
+  last_name    String   @db.VarChar(100)
+  email        String?  @db.VarChar(100)
+  phone_number String?  @db.VarChar(35)
+  created_at   DateTime @default(now())
+  groups       Group[]
+  user         User?
+  schedule TeacherScheduleEntry[]
+  
+  @@map("Teacher")
+
+  
+}
+
+model Course {
+  course_id        String         @id @default(uuid()) @db.Uuid
+  course_code      String?        @unique @db.VarChar(20)
+  course_name      String         @db.VarChar(100)
+  credits          Int?
+  fee_amount       Decimal?       @default(1000) @db.Decimal(10, 2)
+  course_type      CourseType     @default(NORMAL)
+  session_duration Int?
+  profile          CourseProfile?
+  enrollments      Enrollment[]
+  exams            Exam[]
+  groups           Group[]
+  notifications    Notification[]
+
+  @@map("Course")
+}
+
+model CourseProfile {
+  profile_id        String          @id @default(uuid()) @db.Uuid
+  course_id         String          @unique @db.Uuid
+  title_ar          String?         @db.VarChar(200)
+  description       String?
+  description_ar    String?
+  language          String?         @db.VarChar(50)
+  level             String?         @db.VarChar(20)
+  flag_emoji        String?         @db.VarChar(10)
+  price             Decimal?        @default(0) @db.Decimal(10, 2)
+  currency          String?         @default("DZD") @db.VarChar(10)
+  session_name      String?         @db.VarChar(100)
+  start_date        DateTime?
+  end_date          DateTime?
+  registration_open Boolean         @default(true)
+  is_published      Boolean         @default(false)
+  image_url         String?
+  image_public_id   String?
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @updatedAt
+  pricing           CoursePricing[]
+  course            Course          @relation(fields: [course_id], references: [course_id], onDelete: Cascade)
+
+  @@map("CourseProfile")
+}
+
+model CoursePricing {
+  pricing_id  String        @id @default(uuid()) @db.Uuid
+  profile_id  String        @db.Uuid
+  status_fr   String        @db.VarChar(200)
+  status_ar   String?       @db.VarChar(200)
+  status_en   String?       @db.VarChar(200)
+  price       Decimal       @default(0) @db.Decimal(10, 2)
+  currency    String        @default("DA") @db.VarChar(10)
+  discount    String?       @db.VarChar(100)
+  sort_order  Int           @default(0)
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+  profile     CourseProfile @relation(fields: [profile_id], references: [profile_id], onDelete: Cascade)
+  enrollments Enrollment[]
+
+  @@map("CoursePricing")
+}
+
+model Department {
+  department_id String   @id @default(uuid()) @db.Uuid
+  name          String   @unique @db.VarChar(100)
+  description   String?
+  created_at    DateTime @default(now())
+  groups        Group[]
+
+  @@map("Department")
+}
+
+model Group {
+  group_id      String         @id @default(uuid()) @db.Uuid
+  name          String
+  department_id String?        @db.Uuid
+  course_id     String         @db.Uuid
+  max_students  Int            @default(25)
+  status        GroupStatus    @default(OPEN)
+  teacher_id    String?        @db.Uuid
+  level         Level
+  enrollments   Enrollment[]
+  course        Course         @relation(fields: [course_id], references: [course_id])
+  department    Department?    @relation(fields: [department_id], references: [department_id])
+  teacher       Teacher?       @relation(fields: [teacher_id], references: [teacher_id])
+  notifications Notification[]
+  sessions      Session[]
+  timetable TimetableEntry[]
+
+  teacherSchedule TeacherScheduleEntry[] @relation("TeacherScheduleGroup")
+
+  @@map("Group")
+}
+
+model Enrollment {
+  enrollment_id       String                @id @default(uuid()) @db.Uuid
+  student_id          String                @db.Uuid
+  course_id           String                @db.Uuid
+  group_id            String?               @db.Uuid
+  enrollment_date     DateTime              @default(now())
+  level               Level?
+  start_date          DateTime?
+  end_date            DateTime?
+  registration_status RegistrationStatus    @default(PENDING)
+  pricing_id          String?               @db.Uuid
+  course              Course                @relation(fields: [course_id], references: [course_id])
+  group               Group?                @relation(fields: [group_id], references: [group_id])
+  pricing             CoursePricing?        @relation(fields: [pricing_id], references: [pricing_id])
+  student             Student               @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
+  fees                Fee[]
+  history             RegistrationHistory[]
+
+  @@unique([student_id, course_id])
+  @@map("Enrollment")
+}
+
+model Session {
+  session_id   String       @id @default(uuid()) @db.Uuid
+  group_id     String       @db.Uuid
+  session_date DateTime
+  topic        String?
+  room_id      String?      @db.Uuid
+  end_time     DateTime?
+  attendance   Attendance[]
+  group        Group        @relation(fields: [group_id], references: [group_id])
+  room         Room?        @relation(fields: [room_id], references: [room_id])
+
+  @@map("Session")
+}
+
+model Room {
+  room_id    String    @id @default(uuid()) @db.Uuid
+  name       String    @unique
+  capacity   Int       @default(30)
+  location   String?
+  is_active  Boolean   @default(true)
+  created_at DateTime  @default(now())
+  sessions   Session[]
+  timetable TimetableEntry[]
+
+  teacherSchedule TeacherScheduleEntry[] @relation("TeacherScheduleRoom")
+
+  @@map("Room")
+}
+
+model Attendance {
+  attendance_id String           @id @default(uuid()) @db.Uuid
+  session_id    String           @db.Uuid
+  student_id    String           @db.Uuid
+  status        AttendanceStatus
+  attended_at   DateTime         @default(now())
+  session       Session          @relation(fields: [session_id], references: [session_id])
+  student       Student          @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
+
+  @@unique([session_id, student_id])
+  @@map("Attendance")
+}
+
+model Exam {
+  exam_id   String   @id @default(uuid()) @db.Uuid
+  course_id String   @db.Uuid
+  exam_name String?
+  exam_date DateTime
+  max_marks Int
+  course    Course   @relation(fields: [course_id], references: [course_id])
+  results   Result[]
+
+  @@map("Exam")
+}
+
+model Result {
+  result_id      String  @id @default(uuid()) @db.Uuid
+  exam_id        String  @db.Uuid
+  student_id     String  @db.Uuid
+  marks_obtained Int
+  grade          String?
+  exam           Exam    @relation(fields: [exam_id], references: [exam_id], onDelete: Cascade)
+  student        Student @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
+
+  @@unique([exam_id, student_id])
+  @@map("Result")
+}
+
+model Fee {
+  fee_id            String      @id @default(uuid()) @db.Uuid
+  student_id        String      @db.Uuid
+  enrollment_id     String?     @db.Uuid
+  amount            Decimal     @db.Decimal(10, 2)
+  due_date          DateTime
+  status            FeeStatus   @default(UNPAID)
+  payment_method    String?     @db.VarChar(30)
+  reference_code    String?     @db.VarChar(100)
+  paid_at           DateTime?
+  created_by        String?     @db.Uuid
+  processed_at      DateTime?
+  processed_by      String?     @db.Uuid
+  confirmed_by      String?     @db.Uuid
+  confirmed_by_user User?       @relation("FeeConfirmedBy", fields: [confirmed_by], references: [user_id])
+  enrollment        Enrollment? @relation(fields: [enrollment_id], references: [enrollment_id])
+  student           Student     @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
+
+  @@map("Fee")
+}
+
+model Document {
+  document_id String         @id @default(uuid())
+  student_id  String         @db.Uuid
+  type        String
+  file_path   String
+  public_id   String?
+  status      DocumentStatus @default(PENDING)
+  reviewed_at DateTime?
+  rejection_reason  String?
+  reviewed_by String?        @db.Uuid
+  uploaded_at DateTime       @default(now())
+  student     Student        @relation("StudentDocuments", fields: [student_id], references: [student_id])
+
+  @@map("Document")
+}
+
+model Permission {
+  permission_id String              @id @default(uuid()) @db.Uuid
+  name          String              @unique
+  description   String?
+  students      StudentPermission[]
+
+  @@map("Permission")
+}
+
+model StudentPermission {
+  student_id    String     @db.Uuid
+  permission_id String     @db.Uuid
+  permission    Permission @relation(fields: [permission_id], references: [permission_id], onDelete: Cascade)
+  student       Student    @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
+
+  @@id([student_id, permission_id])
+  @@map("StudentPermission")
+}
+
+model RegistrationHistory {
+  history_id    String             @id @default(uuid()) @db.Uuid
+  enrollment_id String             @db.Uuid
+  old_status    RegistrationStatus
+  new_status    RegistrationStatus
+  changed_at    DateTime           @default(now())
+  changed_by    String?            @db.Uuid
+  enrollment    Enrollment         @relation(fields: [enrollment_id], references: [enrollment_id], onDelete: Cascade)
+
+  @@map("RegistrationHistory")
+}
+
+model User {
+  user_id        String                  @id @default(uuid()) @db.Uuid
+  email          String                  @unique @db.VarChar(100)
+  password       String?
+  role           UserRole                @default(STUDENT)
+  is_active      Boolean                 @default(true)
+  google_id      String?                 @unique
+  google_email   String?
+  google_avatar  String?
+  student_id     String?                 @unique @db.Uuid
+  teacher_id     String?                 @unique @db.Uuid
+  created_at     DateTime                @default(now())
+  confirmed_fees Fee[]                   @relation("FeeConfirmedBy")
+  notifications  NotificationRecipient[]
+  refresh_tokens RefreshToken[]
+  student        Student?                @relation(fields: [student_id], references: [student_id])
+  teacher        Teacher?                @relation(fields: [teacher_id], references: [teacher_id])
+
+  @@map("User")
+}
+
+model RefreshToken {
+  token_id   String   @id @default(uuid()) @db.Uuid
+  user_id    String   @db.Uuid
+  token      String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("RefreshToken")
+}
+
+model Announcement {
+  announcement_id      String    @id @default(uuid())
+  title                String
+  title_ar             String?
+  content              String
+  content_ar           String?
+  excerpt              String?
+  excerpt_ar           String?
+  category             String?
+  image_url            String?
+  image_public_id      String?
+  is_published         Boolean   @default(false)
+  published_at         DateTime?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+  is_pinned            Boolean   @default(false)
+  pinned_at            DateTime?
+  attachment_name      String?
+  attachment_public_id String?
+  attachment_type      String?
+  attachment_url       String?
+
+  @@map("announcements")
+}
+
+model Notification {
+  notification_id String                  @id @default(uuid()) @db.Uuid
+  title           String                  @db.VarChar(200)
+  title_ar        String?                 @db.VarChar(200)
+  message         String
+  message_ar      String?
+  target_type     NotificationTarget
+  course_id       String?                 @db.Uuid
+  group_id        String?                 @db.Uuid
+  priority        NotificationPriority    @default(NORMAL)
+  created_by      String?                 @db.Uuid
+  created_at      DateTime                @default(now())
+  course          Course?                 @relation(fields: [course_id], references: [course_id])
+  group           Group?                  @relation(fields: [group_id], references: [group_id])
+  recipients      NotificationRecipient[]
+
+  @@map("Notification")
+}
+
+model NotificationRecipient {
+  recipient_id    String       @id @default(uuid()) @db.Uuid
+  notification_id String       @db.Uuid
+  user_id         String       @db.Uuid
+  is_read         Boolean      @default(false)
+  read_at         DateTime?
+  notification    Notification @relation(fields: [notification_id], references: [notification_id], onDelete: Cascade)
+  user            User         @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@unique([notification_id, user_id])
+  @@index([user_id, is_read])
+  @@map("NotificationRecipient")
+}
+
+model AuditLog {
+  log_id      String   @id @default(uuid()) @db.Uuid
+  user_id     String?  @db.Uuid
+  user_email  String?  @db.VarChar(100)
+  user_role   String?  @db.VarChar(20)
+  action      String   @db.VarChar(50)
+  entity_type String   @db.VarChar(50)
+  entity_id   String?  @db.VarChar(100)
+  details     String?
+  ip_address  String?  @db.VarChar(45)
+  created_at  DateTime @default(now())
+
+  @@index([user_id])
+  @@index([action])
+  @@index([entity_type])
+  @@index([created_at])
+  @@map("AuditLog")
+}
+
+model SystemSettings {
+  setting_id String   @id @default(uuid()) @db.Uuid
+  key        String   @unique @db.VarChar(100)
+  value      String
+  updated_by String?  @db.Uuid
+  updated_at DateTime @updatedAt
+
+  @@map("SystemSettings")
+}
+
+model TimetableEntry {
+  entry_id     String   @id @default(uuid()) @db.Uuid
+  room_id      String   @db.Uuid
+  group_id     String?  @db.Uuid
+  day_of_week  Int
+  start_time   String   @db.VarChar(5)
+  end_time     String   @db.VarChar(5)
+  level        String   @db.VarChar(20)
+  language     String   @db.VarChar(5)
+  group_label  String   @db.VarChar(50)
+  session_name String?  @db.VarChar(100)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  created_by   String?  @db.Uuid
+
+  room  Room   @relation(fields: [room_id], references: [room_id])
+  group Group? @relation(fields: [group_id], references: [group_id])
+
+  @@unique([room_id, day_of_week, start_time])
+  @@index([room_id])
+  @@index([day_of_week])
+  @@index([language])
+  @@map("TimetableEntry")
+}
+
+model TimetableConfig {
+  config_id  String   @id @default(uuid()) @db.Uuid
+  key        String   @unique @db.VarChar(50)
+  value      Json
+  updated_by String?  @db.Uuid
+  updated_at DateTime @updatedAt
+  @@map("TimetableConfig")
+}
+
+model TeacherScheduleEntry {
+  entry_id    String   @id @default(uuid()) @db.Uuid
+  teacher_id  String   @db.Uuid
+  group_id    String?  @db.Uuid
+  room_id     String?  @db.Uuid
+  day_of_week Int
+  start_time  String   @db.VarChar(5)
+  end_time    String   @db.VarChar(5)
+  language    String   @db.VarChar(5)
+  level       String   @db.VarChar(20)
+  group_label String   @db.VarChar(50)
+  notes       String?
+  created_by  String?  @db.Uuid
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  teacher Teacher  @relation(fields: [teacher_id], references: [teacher_id], onDelete: Cascade)
+  group   Group?   @relation("TeacherScheduleGroup", fields: [group_id],  references: [group_id])
+  room    Room?    @relation("TeacherScheduleRoom",  fields: [room_id],   references: [room_id])
+
+  @@unique([teacher_id, day_of_week, start_time])
+  @@index([teacher_id])
+  @@index([day_of_week])
+  @@map("TeacherScheduleEntry")
+}
+
+enum NotificationTarget {
+  ALL_STUDENTS
+  ALL_TEACHERS
+  SPECIFIC_STUDENTS
+  SPECIFIC_TEACHERS
+  GROUP
+  COURSE
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum GroupStatus {
+  OPEN
+  FULL
+  FINISHED
+}
+
+enum UserRole {
+  ADMIN
+  STUDENT
+  TEACHER
+  OWNER
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+}
+
+enum FeeStatus {
+  PAID
+  UNPAID
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum RegistrationStatus {
+  PENDING
+  VALIDATED
+  REJECTED
+  PAID
+  FINISHED
+}
+
+enum RegistrantCategory {
+  STUDENT
+  EXTERNAL
+  EMPLOYEE
+}
+
+enum DocumentType {
+  PHOTO
+  ID_CARD
+  STUDENT_CARD
+  SCHOOL_CERTIFICATE
+  REGISTRATION_CERTIFICATE
+  WORK_CERTIFICATE
+  ADMIN_CERTIFICATE
+  PAYMENT_RECEIPT
+}
+
+enum Level {
+  PRE_A1
+  A1
+  A2
+  B1
+  B2
+  C1
+}
+
+enum CourseType {
+  NORMAL
+  INTENSIVE
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

@@ -1,0 +1,70 @@
+services:
+  db:
+    image: postgres:15
+    container_name: db-container
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mydb
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./Backend
+    container_name: backend-container
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 8080
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/mydb
+      SESSION_SECRET: session_secret_key
+      REFRESH_SECRET: super_strong_refresh_secret
+      SESSION_EXPIRES_IN: 1d
+      GOOGLE_CLIENT_ID: 631352520680-7p5j107rq74egkdki1ve2n8fseqvqg3q.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: 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
+      GOOGLE_CALLBACK_URL: http://localhost:8080/api/auth/google/callback
+      FRONTEND_ORIGIN: http://localhost
+      FRONTEND_GOOGLE_CALLBACK_URL: http://localhost/auth/google/callback
+      SERVE_FRONTEND: "false"
+      CLOUDINARY_CLOUD_NAME: dckcbn9ry
+      CLOUDINARY_API_KEY: "793451346135567"
+      CLOUDINARY_API_SECRET: nzfB9px056tcBI4bKBtx1XZY_Ew
+    command: >
+      sh -c "DATABASE_URL=postgresql://postgres:postgres@db:5432/mydb
+      npx prisma migrate deploy &&
+      node dist/app.js"
+
+  frontend:
+    build: ./client
+    container_name: frontend-container
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin-container
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+volumes:
+  db-data:

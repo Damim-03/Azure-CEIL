@@ -1,0 +1,1136 @@
+import { Router } from "express";
+import { authMiddleware } from "../../middlewares/auth.middleware";
+import { roleGuard } from "../../utils/roleGuard";
+import { Permissions } from "../../enums/role.enum";
+
+import {
+  /* ================= USERS ================= */
+  // ❌ changeUserRoleController — REMOVED (OWNER-only)
+  getAllUsersController,
+  getUserByIdController,
+  enableUserController,
+  disableUserController,
+
+  /* ================= STUDENTS ================= */
+  createStudentController,
+  getAllStudentsController,
+  getStudentByIdController,
+  updateStudentController,
+  deleteStudentController,
+
+  /* ================= TEACHERS ================= */
+  createTeacherController,
+  getAllTeachersController,
+  getTeacherByIdController,
+  updateTeacherController,
+  deleteTeacherController,
+
+  /* ================= COURSES ================= */
+  createCourseController,
+  getAllCoursesController,
+  getCourseByIdController,
+  updateCourseController,
+  deleteCourseController,
+
+  /* ================= DEPARTMENTS ================= */
+  createDepartmentController,
+  getAllDepartmentsController,
+  getDepartmentByIdController,
+  updateDepartmentController,
+  deleteDepartmentController,
+
+  /* ================= GROUPS ================= */
+  createGroupController,
+  getAllGroupsController,
+  getGroupByIdController,
+  updateGroupController,
+  deleteGroupController,
+
+  /* ================= FEES ================= */
+  // ❌ createFeeController — REMOVED (OWNER-only)
+  getAllFeesController,
+  getFeeByIdController,
+  updateFeeController,
+  // ❌ deleteFeeController — REMOVED (OWNER-only)
+  markFeeAsPaidController,
+
+  /* ================= ENROLLMENTS ================= */
+  getAllEnrollmentsController,
+  getEnrollmentByIdController,
+  validateEnrollmentController,
+  finishEnrollmentController,
+  markEnrollmentPaidController,
+  rejectEnrollmentController,
+  deleteEnrollmentController,
+
+  /* ================= SESSIONS ================= */
+  createSessionController,
+  getAllSessionsController,
+  getSessionByIdController,
+  updateSessionController,
+  deleteSessionController,
+
+  /* ================= ATTENDANCE ================= */
+  markAttendanceController,
+  getAttendanceBySessionController,
+  getAttendanceByStudentController,
+  updateAttendanceController,
+
+  /* ================= EXAMS ================= */
+  createExamController,
+  getAllExamsController,
+  getExamByIdController,
+  updateExamController,
+  deleteExamController,
+
+  /* ================= RESULTS ================= */
+  addExamResultsController,
+  getResultsByExamController,
+  getResultsByStudentController,
+  updateResultController,
+
+  /* ================= PERMISSIONS ================= */
+  createPermissionController,
+  getAllPermissionsController,
+  assignPermissionToStudentController,
+  removePermissionFromStudentController,
+
+  /* ================= DASHBOARD ================= */
+  getAdminDashboardStatsController,
+  deleteDocumentController,
+  getAllDocumentsController,
+  getDocumentByIdController,
+  addStudentToGroupController,
+  removeStudentFromGroupController,
+  getStudentsReportController,
+  getAttendanceReportController,
+  getEnrollmentsReportController,
+  getGroupsReportController,
+  getPaymentsReportController,
+  updateStudentAvatarController,
+  updateAdminAvatarController,
+  approveDocumentController,
+  rejectDocumentController,
+  assignInstructorToGroupController,
+  getAttendanceByDateController,
+  getStudentAttendanceSummaryController,
+  markBulkAttendanceController,
+} from "../../controllers/admin/admin.controller";
+import { reviewDocumentController } from "../../controllers/admin/document.controller";
+import { upload } from "../../middlewares/upload.middleware";
+import {
+  createAnnouncementController,
+  getAllAnnouncementsController,
+  getAnnouncementByIdController,
+  updateAnnouncementController,
+  deleteAnnouncementController,
+  publishAnnouncementController,
+  unpublishAnnouncementController,
+  pinAnnouncementController,
+  unpinAnnouncementController,
+} from "../../controllers/admin/Announcement.controller";
+import {
+  createOrUpdateCourseProfileController,
+  getCourseProfileController,
+  publishCourseProfileController,
+  unpublishCourseProfileController,
+  getCoursePricingController,
+  addCoursePricingController,
+  updateCoursePricingController,
+  deleteCoursePricingController,
+} from "../../controllers/admin/Courseprofile.controller";
+import {
+  getNotificationTargetsController,
+  sendNotificationController,
+  getAllNotificationsController,
+  getNotificationByIdController,
+  deleteNotificationController,
+  searchStudentsController,
+} from "../../controllers/admin/Notification.controller";
+import {
+  getRoomsScheduleOverviewController,
+  createRoomController,
+  getAllRoomsController,
+  getRoomByIdController,
+  updateRoomController,
+  deleteRoomController,
+  getRoomScheduleController,
+  checkRoomAvailabilityController,
+} from "../../controllers/admin/Room.controller";
+
+import {
+  getGroups as getGroupsWithStatsController,
+  getGroupById as getGroupDetailsController,
+  getGroupStudents as getGroupStudentsController,
+  getGroupTeacher as getGroupTeacherController,
+  changeGroupStatus as changeGroupStatusController,
+  assignTeacher as assignGroupTeacherController,
+  transferStudent as transferStudentController,
+  getTransferRequests as getTransferRequestsController,
+} from "../../controllers/admin/group.controller";
+import timetableRoutes from "./timetable.route";
+import teacherScheduleRoutes from "./teacherSchedule.route";
+
+const adminRoutes = Router();
+
+/* ======================================================
+    admin
+  ====================================================== */
+
+adminRoutes.use("/teacher-schedule", teacherScheduleRoutes);
+
+adminRoutes.use("/timetable", timetableRoutes);
+
+adminRoutes.patch(
+  "/me/avatar",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_USERS]), // أو Permission خاص
+  upload.single("avatar"),
+  updateAdminAvatarController,
+);
+
+adminRoutes.patch(
+  "/announcements/:announcementId/pin",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ANNOUNCEMENTS]),
+  pinAnnouncementController,
+);
+
+adminRoutes.patch(
+  "/announcements/:announcementId/unpin",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ANNOUNCEMENTS]),
+  unpinAnnouncementController,
+);
+
+/* ======================================================
+    USERS
+  ====================================================== */
+
+adminRoutes.get(
+  "/users",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_USERS]),
+  getAllUsersController,
+);
+
+adminRoutes.get(
+  "/users/:userId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_USERS]),
+  getUserByIdController,
+);
+
+// ❌ REMOVED: PATCH /users/:userId/role — OWNER-only now
+
+adminRoutes.patch(
+  "/users/:userId/enable",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_USERS]),
+  enableUserController,
+);
+
+adminRoutes.patch(
+  "/users/:userId/disable",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_USERS]),
+  disableUserController,
+);
+
+/* ======================================================
+    STUDENTS
+  ====================================================== */
+
+adminRoutes.post(
+  "/students",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_STUDENTS]),
+  createStudentController,
+);
+
+adminRoutes.get(
+  "/students",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_STUDENTS]),
+  getAllStudentsController,
+);
+
+adminRoutes.get(
+  "/students/:studentId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_STUDENTS]),
+  getStudentByIdController,
+);
+
+adminRoutes.put(
+  "/students/:studentId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_STUDENTS]),
+  updateStudentController,
+);
+
+adminRoutes.delete(
+  "/students/:studentId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_STUDENTS]),
+  deleteStudentController,
+);
+
+adminRoutes.patch(
+  "/students/:studentId/avatar",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_STUDENTS]),
+  upload.single("avatar"),
+  updateStudentAvatarController,
+);
+
+/* ======================================================
+    TEACHERS
+  ====================================================== */
+
+adminRoutes.post(
+  "/teachers",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_TEACHERS]),
+  createTeacherController,
+);
+
+adminRoutes.get(
+  "/teachers",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_TEACHERS]),
+  getAllTeachersController,
+);
+
+adminRoutes.get(
+  "/teachers/:teacherId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_TEACHERS]),
+  getTeacherByIdController,
+);
+
+adminRoutes.put(
+  "/teachers/:teacherId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_TEACHERS]),
+  updateTeacherController,
+);
+
+adminRoutes.delete(
+  "/teachers/:teacherId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_TEACHERS]),
+  deleteTeacherController,
+);
+
+/* ======================================================
+    COURSES
+  ====================================================== */
+
+adminRoutes.post(
+  "/courses",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_COURSES]),
+  createCourseController,
+);
+
+adminRoutes.get(
+  "/courses",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_COURSES]),
+  getAllCoursesController,
+);
+
+adminRoutes.get(
+  "/courses/:courseId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_COURSES]),
+  getCourseByIdController,
+);
+
+adminRoutes.put(
+  "/courses/:courseId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_COURSES]),
+  updateCourseController,
+);
+
+adminRoutes.delete(
+  "/courses/:courseId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_COURSES]),
+  deleteCourseController,
+);
+
+/* ======================================================
+    DEPARTMENTS
+  ====================================================== */
+
+adminRoutes.post(
+  "/departments",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  createDepartmentController,
+);
+
+adminRoutes.get(
+  "/departments",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  getAllDepartmentsController,
+);
+
+adminRoutes.get(
+  "/departments/:departmentId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  getDepartmentByIdController,
+);
+
+adminRoutes.put(
+  "/departments/:departmentId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  updateDepartmentController,
+);
+
+adminRoutes.delete(
+  "/departments/:departmentId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  deleteDepartmentController,
+);
+
+/* ======================================================
+    GROUPS
+  ====================================================== */
+
+adminRoutes.post(
+  "/groups",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  createGroupController,
+);
+
+adminRoutes.get(
+  "/groups",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  getGroupsWithStatsController,
+);
+
+adminRoutes.get(
+  "/groups/:groupId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  getGroupByIdController,
+);
+
+adminRoutes.put(
+  "/groups/:groupId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  updateGroupController,
+);
+
+adminRoutes.delete(
+  "/groups/:groupId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  deleteGroupController,
+);
+
+adminRoutes.post(
+  "/groups/:groupId/students/:studentId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  addStudentToGroupController,
+);
+
+adminRoutes.patch(
+  "/groups/:groupId/assign-instructor",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  assignInstructorToGroupController, // ← Controller جديد
+);
+
+adminRoutes.delete(
+  "/groups/:groupId/students/:studentId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  removeStudentFromGroupController,
+);
+
+/* ======================================================
+    FEES
+  ====================================================== */
+
+// ❌ REMOVED: POST /fees — OWNER-only
+
+adminRoutes.get(
+  "/fees",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_FEES]),
+  getAllFeesController,
+);
+
+adminRoutes.get(
+  "/fees/:feeId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_FEES]),
+  getFeeByIdController,
+);
+
+adminRoutes.put(
+  "/fees/:feeId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_FEES]),
+  updateFeeController,
+);
+
+adminRoutes.patch(
+  "/fees/:feeId/pay",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_FEES]),
+  markFeeAsPaidController,
+);
+
+// ❌ REMOVED: DELETE /fees/:feeId — OWNER-only
+
+/* ======================================================
+    ENROLLMENTS
+  ====================================================== */
+
+adminRoutes.get(
+  "/enrollments",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ENROLLMENTS]),
+  getAllEnrollmentsController,
+);
+
+adminRoutes.get(
+  "/enrollments/:enrollmentId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ENROLLMENTS]),
+  getEnrollmentByIdController,
+);
+
+adminRoutes.patch(
+  "/enrollments/:enrollmentId/validate",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ENROLLMENTS]),
+  validateEnrollmentController,
+);
+
+adminRoutes.patch(
+  "/enrollments/:enrollmentId/reject",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ENROLLMENTS]),
+  rejectEnrollmentController,
+);
+
+adminRoutes.patch(
+  "/enrollments/:enrollmentId/mark-paid",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ENROLLMENTS]),
+  markEnrollmentPaidController,
+);
+
+adminRoutes.patch(
+  "/enrollments/:enrollmentId/finish",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ENROLLMENTS]),
+  finishEnrollmentController,
+);
+
+adminRoutes.delete(
+  "/enrollments/:enrollmentId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ENROLLMENTS]),
+  deleteEnrollmentController,
+);
+
+/* ======================================================
+    DOCUMENTS
+  ====================================================== */
+
+adminRoutes.get(
+  "/documents",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_DOCUMENTS]),
+  getAllDocumentsController,
+);
+
+adminRoutes.get(
+  "/documents/:documentId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_DOCUMENTS]),
+  getDocumentByIdController,
+);
+
+// ✅ ADD these 2 routes:
+adminRoutes.put(
+  "/documents/:documentId/approve",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_DOCUMENTS]),
+  approveDocumentController,
+);
+
+adminRoutes.put(
+  "/documents/:documentId/reject",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_DOCUMENTS]),
+  rejectDocumentController,
+);
+
+adminRoutes.delete(
+  "/documents/:documentId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_DOCUMENTS]),
+  deleteDocumentController,
+);
+
+/* ======================================================
+    SESSIONS
+  ====================================================== */
+
+adminRoutes.post(
+  "/sessions",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_SESSIONS]),
+  createSessionController,
+);
+
+adminRoutes.get(
+  "/sessions",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_SESSIONS]),
+  getAllSessionsController,
+);
+
+adminRoutes.get(
+  "/sessions/:sessionId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_SESSIONS]),
+  getSessionByIdController,
+);
+
+adminRoutes.put(
+  "/sessions/:sessionId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_SESSIONS]),
+  updateSessionController,
+);
+
+adminRoutes.delete(
+  "/sessions/:sessionId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_SESSIONS]),
+  deleteSessionController,
+);
+
+/* ======================================================
+    ATTENDANCE
+  ====================================================== */
+
+adminRoutes.post(
+  "/sessions/:sessionId/attendance",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ATTENDANCE]),
+  markAttendanceController,
+);
+
+adminRoutes.get(
+  "/sessions/:sessionId/attendance",
+  authMiddleware,
+  roleGuard([
+    Permissions.MANAGE_ATTENDANCE,
+    Permissions.MANAGE_SESSIONS, // ✅ إضافة
+  ]),
+  getAttendanceBySessionController,
+);
+
+adminRoutes.get(
+  "/students/:studentId/attendance",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ATTENDANCE]),
+  getAttendanceByStudentController,
+);
+
+adminRoutes.put(
+  "/attendance/:attendanceId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ATTENDANCE]),
+  updateAttendanceController,
+);
+
+adminRoutes.post(
+  "/sessions/:sessionId/attendance/bulk",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ATTENDANCE]),
+  markBulkAttendanceController,
+);
+
+// Attendance by date
+adminRoutes.get(
+  "/groups/:groupId/attendance/date/:date",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ATTENDANCE]),
+  getAttendanceByDateController,
+);
+
+// Student summary
+adminRoutes.get(
+  "/students/:studentId/attendance/summary",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ATTENDANCE]),
+  getStudentAttendanceSummaryController,
+);
+
+/* ======================================================
+    EXAMS & RESULTS
+  ====================================================== */
+
+adminRoutes.post(
+  "/exams",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_EXAMS]),
+  createExamController,
+);
+
+adminRoutes.get(
+  "/exams",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_EXAMS]),
+  getAllExamsController,
+);
+
+adminRoutes.get(
+  "/exams/:examId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_EXAMS]),
+  getExamByIdController,
+);
+
+adminRoutes.put(
+  "/exams/:examId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_EXAMS]),
+  updateExamController,
+);
+
+adminRoutes.delete(
+  "/exams/:examId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_EXAMS]),
+  deleteExamController,
+);
+
+adminRoutes.post(
+  "/exams/:examId/results",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_RESULTS]),
+  addExamResultsController,
+);
+
+adminRoutes.get(
+  "/exams/:examId/results",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_RESULTS]),
+  getResultsByExamController,
+);
+
+adminRoutes.get(
+  "/students/:studentId/results",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_RESULTS]),
+  getResultsByStudentController,
+);
+
+adminRoutes.put(
+  "/results/:resultId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_RESULTS]),
+  updateResultController,
+);
+
+/* ======================================================
+    PERMISSIONS
+  ====================================================== */
+
+adminRoutes.post(
+  "/permissions",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_PERMISSIONS]),
+  createPermissionController,
+);
+
+adminRoutes.get(
+  "/permissions",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_PERMISSIONS]),
+  getAllPermissionsController,
+);
+
+adminRoutes.post(
+  "/students/:studentId/permissions",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_PERMISSIONS]),
+  assignPermissionToStudentController,
+);
+
+adminRoutes.delete(
+  "/students/:studentId/permissions/:permissionId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_PERMISSIONS]),
+  removePermissionFromStudentController,
+);
+
+/* ======================================================
+    DASHBOARD
+  ====================================================== */
+
+adminRoutes.get(
+  "/dashboard/stats",
+  authMiddleware,
+  roleGuard([Permissions.VIEW_REPORTS]),
+  getAdminDashboardStatsController,
+);
+
+/* ======================================================
+    REPORTS
+  ====================================================== */
+
+adminRoutes.get(
+  "/reports/students",
+  authMiddleware,
+  roleGuard([Permissions.VIEW_REPORTS]),
+  getStudentsReportController,
+);
+
+adminRoutes.get(
+  "/reports/groups",
+  authMiddleware,
+  roleGuard([Permissions.VIEW_REPORTS]),
+  getGroupsReportController,
+);
+
+adminRoutes.get(
+  "/reports/payments",
+  authMiddleware,
+  roleGuard([Permissions.VIEW_REPORTS]),
+  getPaymentsReportController,
+);
+
+adminRoutes.get(
+  "/reports/attendance",
+  authMiddleware,
+  roleGuard([Permissions.VIEW_REPORTS]),
+  getAttendanceReportController,
+);
+
+adminRoutes.get(
+  "/reports/enrollments",
+  authMiddleware,
+  roleGuard([Permissions.VIEW_REPORTS]),
+  getEnrollmentsReportController,
+);
+
+/* ======================================================
+    ANNOUNCEMENTS (الأخبار والإعلانات)
+  ====================================================== */
+
+adminRoutes.post(
+  "/announcements",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ANNOUNCEMENTS]),
+  upload.fields([
+    { name: "image", maxCount: 1 }, // صورة الغلاف (اختياري)
+    { name: "attachment", maxCount: 1 }, // PDF / Word / صورة (اختياري)
+  ]),
+  createAnnouncementController,
+);
+
+adminRoutes.get(
+  "/announcements",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ANNOUNCEMENTS]),
+  getAllAnnouncementsController,
+);
+
+adminRoutes.get(
+  "/announcements/:announcementId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ANNOUNCEMENTS]),
+  getAnnouncementByIdController,
+);
+
+adminRoutes.put(
+  "/announcements/:announcementId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ANNOUNCEMENTS]),
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "attachment", maxCount: 1 },
+  ]),
+  updateAnnouncementController,
+);
+
+adminRoutes.delete(
+  "/announcements/:announcementId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ANNOUNCEMENTS]),
+  deleteAnnouncementController,
+);
+
+adminRoutes.patch(
+  "/announcements/:announcementId/publish",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ANNOUNCEMENTS]),
+  publishAnnouncementController,
+);
+
+adminRoutes.patch(
+  "/announcements/:announcementId/unpublish",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ANNOUNCEMENTS]),
+  unpublishAnnouncementController,
+);
+
+/* ======================================================
+    COURSE PROFILES (الملف العام للدورة)
+  ====================================================== */
+
+// إنشاء أو تحديث الملف العام للدورة
+adminRoutes.post(
+  "/courses/:courseId/profile",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_COURSES]),
+  upload.single("image"),
+  createOrUpdateCourseProfileController,
+);
+
+// عرض الملف العام
+adminRoutes.get(
+  "/courses/:courseId/profile",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_COURSES]),
+  getCourseProfileController,
+);
+
+// نشر
+adminRoutes.patch(
+  "/courses/:courseId/profile/publish",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_COURSES]),
+  publishCourseProfileController,
+);
+
+// إلغاء النشر
+adminRoutes.patch(
+  "/courses/:courseId/profile/unpublish",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_COURSES]),
+  unpublishCourseProfileController,
+);
+
+/* ======================================================
+    COURSE PRICING (التعرفة حسب الصفة)
+  ====================================================== */
+
+// عرض كل التعرفات
+adminRoutes.get(
+  "/courses/:courseId/pricing",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_COURSES]),
+  getCoursePricingController,
+);
+
+// إضافة تعرفة جديدة
+adminRoutes.post(
+  "/courses/:courseId/pricing",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_COURSES]),
+  addCoursePricingController,
+);
+
+// تحديث تعرفة
+adminRoutes.put(
+  "/courses/:courseId/pricing/:pricingId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_COURSES]),
+  updateCoursePricingController,
+);
+
+// حذف تعرفة
+adminRoutes.delete(
+  "/courses/:courseId/pricing/:pricingId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_COURSES]),
+  deleteCoursePricingController,
+);
+
+/* ======================================================
+    NOTIFICATIONS (الاشعارات)
+  ====================================================== */
+
+adminRoutes.get(
+  "/notifications/targets",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ANNOUNCEMENTS]),
+  getNotificationTargetsController,
+);
+
+// ✅ MUST be BEFORE /:notificationId
+adminRoutes.get(
+  "/notifications/search-students",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ANNOUNCEMENTS]),
+  searchStudentsController,
+);
+
+adminRoutes.post(
+  "/notifications",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ANNOUNCEMENTS]),
+  sendNotificationController,
+);
+
+adminRoutes.get(
+  "/notifications",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ANNOUNCEMENTS]),
+  getAllNotificationsController,
+);
+
+adminRoutes.get(
+  "/notifications/:notificationId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ANNOUNCEMENTS]),
+  getNotificationByIdController,
+);
+
+adminRoutes.delete(
+  "/notifications/:notificationId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_ANNOUNCEMENTS]),
+  deleteNotificationController,
+);
+
+/* ======================================================
+    ROOMS (القاعات)
+  ====================================================== */
+
+// ⚠️ مهم: overview يجب أن يكون قبل :roomId
+adminRoutes.get(
+  "/rooms/schedule/overview",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_SESSIONS]),
+  getRoomsScheduleOverviewController,
+);
+
+adminRoutes.post(
+  "/rooms",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_SESSIONS]),
+  createRoomController,
+);
+
+adminRoutes.get(
+  "/rooms",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_SESSIONS]),
+  getAllRoomsController,
+);
+
+adminRoutes.get(
+  "/rooms/:roomId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_SESSIONS]),
+  getRoomByIdController,
+);
+
+adminRoutes.put(
+  "/rooms/:roomId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_SESSIONS]),
+  updateRoomController,
+);
+
+adminRoutes.delete(
+  "/rooms/:roomId",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_SESSIONS]),
+  deleteRoomController,
+);
+
+adminRoutes.get(
+  "/rooms/:roomId/schedule",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_SESSIONS]),
+  getRoomScheduleController,
+);
+
+adminRoutes.get(
+  "/rooms/:roomId/availability",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_SESSIONS]),
+  checkRoomAvailabilityController,
+);
+
+// ================================================================
+// STEP 2 — أضف هذه الـ routes في قسم GROUPS
+//          بعد السطر: adminRoutes.delete("/groups/:groupId/students/:studentId"...)
+// ================================================================
+
+// ⚠️ Static route أولاً قبل /:groupId
+adminRoutes.get(
+  "/groups/transfer-requests",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  getTransferRequestsController,
+);
+
+adminRoutes.get(
+  "/groups/:groupId/details",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  getGroupDetailsController,
+);
+
+adminRoutes.get(
+  "/groups/:groupId/students",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  getGroupStudentsController,
+);
+
+adminRoutes.get(
+  "/groups/:groupId/teacher",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  getGroupTeacherController,
+);
+
+adminRoutes.patch(
+  "/groups/:groupId/status",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  changeGroupStatusController,
+);
+
+adminRoutes.patch(
+  "/groups/:groupId/teacher",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  assignGroupTeacherController,
+);
+
+adminRoutes.post(
+  "/groups/:groupId/transfer",
+  authMiddleware,
+  roleGuard([Permissions.MANAGE_CLASSES]),
+  transferStudentController,
+);
+
+export default adminRoutes;
