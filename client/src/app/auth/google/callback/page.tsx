@@ -11,13 +11,27 @@ export default function GoogleCallbackPage() {
   useEffect(() => {
     const finishGoogleLogin = async () => {
       try {
-        // 🔑 fetch authenticated user (cookies already set)
+        // ✅ اقرأ التوكن من الـ URL
+        const params = new URLSearchParams(window.location.search);
+        const accessToken = params.get("accessToken");
+        const refreshToken = params.get("refreshToken");
+        const status = params.get("status");
+
+        if (status === "failure" || !accessToken) {
+          navigate("/login", { replace: true });
+          return;
+        }
+
+        // ✅ احفظ التوكن في localStorage
+        localStorage.setItem("accessToken", accessToken);
+        if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
+
+        // ✅ جلب بيانات المستخدم
         const user = await queryClient.fetchQuery({
           queryKey: ["me"],
           queryFn: authApi.me,
         });
 
-        // 🔑 redirect by role
         navigate(
           user.role === "ADMIN"
             ? "/admin"
