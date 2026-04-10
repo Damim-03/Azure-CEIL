@@ -21,18 +21,22 @@ export default function GoogleCallbackPage() {
           return;
         }
 
+        // ✅ احفظ التوكن
         localStorage.setItem("accessToken", accessToken);
         if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
 
+        // ✅ جلب بيانات المستخدم
         const user = await queryClient.fetchQuery({
           queryKey: ["me"],
           queryFn: authApi.me,
         });
 
         navigate(
-          user.role === "ADMIN" ? "/admin"
-          : user.role === "TEACHER" ? "/teacher"
-          : "/dashboard",
+          user.role === "ADMIN"
+            ? "/admin"
+            : user.role === "TEACHER"
+              ? "/teacher"
+              : "/dashboard",
           { replace: true },
         );
       } catch {
