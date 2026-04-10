@@ -11,7 +11,6 @@ export default function GoogleCallbackPage() {
   useEffect(() => {
     const finishGoogleLogin = async () => {
       try {
-        // ✅ اقرأ التوكن من الـ URL
         const params = new URLSearchParams(window.location.search);
         const accessToken = params.get("accessToken");
         const refreshToken = params.get("refreshToken");
@@ -22,22 +21,18 @@ export default function GoogleCallbackPage() {
           return;
         }
 
-        // ✅ احفظ التوكن في localStorage
         localStorage.setItem("accessToken", accessToken);
         if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
 
-        // ✅ جلب بيانات المستخدم
         const user = await queryClient.fetchQuery({
           queryKey: ["me"],
           queryFn: authApi.me,
         });
 
         navigate(
-          user.role === "ADMIN"
-            ? "/admin"
-            : user.role === "TEACHER"
-              ? "/teacher"
-              : "/dashboard",
+          user.role === "ADMIN" ? "/admin"
+          : user.role === "TEACHER" ? "/teacher"
+          : "/dashboard",
           { replace: true },
         );
       } catch {
