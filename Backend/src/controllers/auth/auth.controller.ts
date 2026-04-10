@@ -106,38 +106,18 @@ export const googleLoginCallback = async (req: Request, res: Response) => {
     const passportUser = req.user as any;
 
     if (!passportUser) {
-      return res.redirect(
-        `${config.FRONTEND_GOOGLE_CALLBACK_URL}?status=failure`,
-      );
+      return res.redirect(`${config.FRONTEND_GOOGLE_CALLBACK_URL}?status=failure`);
     }
 
     const { user_id, role } = passportUser;
     const tokens = AuthService.generateTokens(user_id, role);
 
-    // Access Token Cookie
-    res.cookie("accessToken", tokens.accessToken, {
-      httpOnly: true,
-      secure: config.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 15 * 60 * 1000,
-    });
-
-    // Refresh Token Cookie
-    res.cookie("refreshToken", tokens.refreshToken, {
-      httpOnly: true,
-      secure: config.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    return res.redirect(config.FRONTEND_GOOGLE_CALLBACK_URL);
+    return res.redirect(
+      `${config.FRONTEND_GOOGLE_CALLBACK_URL}?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`
+    );
   } catch (error) {
     console.error("Google login callback error:", error);
-    return res.redirect(
-      `${config.FRONTEND_GOOGLE_CALLBACK_URL}?status=failure`,
-    );
+    return res.redirect(`${config.FRONTEND_GOOGLE_CALLBACK_URL}?status=failure`);
   }
 };
 
